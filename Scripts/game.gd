@@ -93,8 +93,7 @@ func telegraph_spawn(host: Node, pos: Vector2, color: Color, ind_scale: float, d
 	(que instancia el enemigo/aliado). Lo usan jefes, capitanes y el casco de
 	gran capitán. El color distingue enemigos (rojo) de aliados (azul)."""
 	if host == null or not is_instance_valid(host):
-		if cb.is_valid():
-			cb.call()
+		_safe_call(cb)
 		return
 	var ind = SPAWN_INDICATOR.instantiate()
 	host.add_child(ind)
@@ -102,5 +101,19 @@ func telegraph_spawn(host: Node, pos: Vector2, color: Color, ind_scale: float, d
 	await get_tree().create_timer(delay).timeout
 	if is_instance_valid(ind):
 		ind.queue_free()
-	if cb.is_valid():
-		cb.call()
+	# El host puede haber muerto durante el retardo (p. ej. el minijefe al invocar):
+	# si su escena ya no existe, no instanciamos nada.
+	if not is_instance_valid(host):
+		return
+	_safe_call(cb)
+
+func _safe_call(cb: Callable) -> void:
+	# Una lambda cuyo objeto dueño fue liberado durante el await sigue dando
+	# is_valid()==true pero revienta al llamarla ("invalid instance"). Comprobamos
+	# que el objeto al que pertenece siga vivo antes de ejecutarla.
+	if not cb.is_valid():
+		return
+	var owner = cb.get_object()
+	if owner != null and not is_instance_valid(owner):
+		return
+	cb.call()

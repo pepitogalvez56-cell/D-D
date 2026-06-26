@@ -150,9 +150,14 @@ func _process(delta: float) -> void:
 	if _screen_active or get_tree().paused or not wave_active:
 		return
 
-	# Oleada del minijefe (10): sin temporizador ni grupos; solo se gana al
-	# derrotar al minijefe (ver _on_miniboss_defeated).
+	# Oleada del minijefe (10): sin temporizador, pero ahora SÍ aparecen algunos
+	# refuerzos (grupos pequeños y más espaciados) además del propio minijefe.
+	# Se gana al derrotar al minijefe (ver _on_miniboss_defeated).
 	if _miniboss_active:
+		_spawn_accum -= delta
+		if _spawn_accum <= 0.0:
+			_spawn_accum = _group_interval() * 1.5
+			_spawn_group(true)   # solo grupos pequeños para no saturar
 		return
 
 	# Cuenta atrás de la oleada
@@ -296,6 +301,7 @@ func _start_miniboss_wave() -> void:
 	_miniboss_active = true
 	time_left = 0.0
 	timer_label.text = ""          # sin temporizador en la oleada 10
+	_spawn_accum = 6.0             # primeros refuerzos unos segundos tras el minijefe
 	_set_info("Defeat the Gran Capitán!")
 	_play_music(_music_boss1)
 	_spawn_miniboss()
@@ -457,7 +463,7 @@ func _spawn_host() -> Node:
 
 # Genera un grupo (pequeño o grande) precedido de indicadores rojos en cada
 # punto exacto donde aparecerá un enemigo.
-func _spawn_group() -> void:
+func _spawn_group(force_small: bool = false) -> void:
 	if player == null or not is_instance_valid(player):
 		player = _find_player()
 	if player == null:
@@ -465,7 +471,7 @@ func _spawn_group() -> void:
 	if _ground == null or not is_instance_valid(_ground):
 		_ground = _find_ground()
 
-	var is_large := randf() < large_group_chance
+	var is_large := (not force_small) and randf() < large_group_chance
 	var count := randi_range(large_group_min, large_group_max) if is_large \
 		else randi_range(small_group_min, small_group_max)
 
