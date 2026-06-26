@@ -24,7 +24,7 @@ const ARENA_MIN := Vector2(70, 70)
 const ARENA_MAX := Vector2(1850, 1082)
 
 @export_group("Estadísticas")
-@export var max_health: int = 90
+@export var max_health: int = 270
 @export var move_speed: float = 300.0
 @export var contact_damage: int = 4
 @export var contact_cooldown: float = 0.8

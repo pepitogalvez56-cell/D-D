@@ -14,7 +14,7 @@ extends CharacterBody2D
 signal died
 
 @export_group("Estadísticas")
-@export var max_health: int = 220
+@export var max_health: int = 320
 @export var move_speed: float = 230.0
 @export var contact_damage: int = 6
 @export var contact_cooldown: float = 0.8
