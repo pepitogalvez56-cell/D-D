@@ -101,7 +101,7 @@ en las oleadas siguientes):
 | 7 | … + Bigminion_capitan ×1 (repertorio completo) | +Capitán |
 | 8 | Mismo repertorio que la 7 (Cargador ×2) | sin enemigo nuevo, más intenso |
 | 9 | Mismo repertorio (BigMinion ×3, BulletMinion ×2, Capitán ×2) | sin enemigo nuevo, más intenso |
-| 10 | **Minijefe** (Bigminion_gran_capitan) → luego **Jefe** | oleada sin temporizador |
+| 10 | **Minijefe** (Bigminion_gran_capitan) + refuerzos (grupos pequeños espaciados) → luego **Jefe** | oleada sin temporizador |
 
 > **En todas las oleadas aparecen Minions + el resto del repertorio acumulado**
 > (la única excepción es la oleada 1, solo Minions, y la 10, que es el minijefe).
