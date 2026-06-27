@@ -178,3 +178,77 @@ viejas, etc.). **Vuelve a exportar** tras este cambio.
 | Cifrado real del .pck | Compilar plantillas con `SCRIPT_AES256_ENCRYPTION_KEY` + pestaña Encryption. |
 | Exportar Windows desde Linux | Plantillas oficiales 4.6.stable (sin mingw para build normal). |
 | No enviar de más | Excluir `docs/*`, `*.md`, `DEV-ROOM.tscn`, `*.txt`. |
+
+---
+
+# Exportar para navegador (HTML5) y publicar en itch.io
+
+El juego ya usa el renderizador **Compatibility (OpenGL3)**, que es justo el que
+funciona en web (WebGL2). Forward+/Vulkan NO funciona en navegador, así que no
+hay que cambiar nada del render.
+
+## 1. Plantillas
+
+Necesitas las **Export Templates de la MISMA versión** (4.6.stable) instaladas
+(Editor → Manage Export Templates). Incluyen la plantilla de Web; no hay que
+compilar nada.
+
+## 2. Crear el preset Web
+
+**Project → Export… → Add… → Web.**
+
+- **Export Path:** `build/web/index.html` (el archivo principal DEBE llamarse
+  `index.html`; itch.io lo busca por ese nombre).
+- Deja las opciones por defecto. Godot generará varios archivos:
+  `index.html`, `index.js`, `index.wasm`, `index.pck`, `index.audio.worklet.js`,
+  `index.icon.png`, etc. **Todos** deben ir juntos.
+- Para ocultar el código aplica lo mismo que en escritorio: **Script → Export
+  Mode → `Compressed binary tokens`** (el cifrado de PCK no aplica al export web
+  estándar).
+
+## 3. Exportar
+
+Editor: **Export Project…** a `build/web/index.html` (desmarca "Export With
+Debug" para la versión de jugadores).
+
+Terminal (tras crear el preset):
+
+```bash
+mkdir -p build/web
+godot --headless --export-release "Web" build/web/index.html
+```
+
+## 4. Empaquetar para itch.io
+
+Comprime **el contenido** de `build/web/` en un `.zip` con `index.html` en la
+**raíz** del zip (no dentro de una subcarpeta):
+
+```bash
+cd build/web && zip -r ../spinshot_web.zip . && cd -
+```
+
+## 5. Subir y configurar en itch.io
+
+1. En tu página del juego: **Edit game → Uploads → Upload files**, sube
+   `spinshot_web.zip`.
+2. Marca **"This file will be played in the browser"**.
+3. **Embed options:**
+   - **Viewport dimensions:** `1280 x 720` (la base del proyecto). Marca
+     "Mobile friendly" si quieres.
+   - Marca **"Fullscreen button"** y **"Enable scrollbars"** off.
+   - **MUY IMPORTANTE:** marca **"SharedArrayBuffer support"**. Godot 4 usa hilos
+     en web y los necesita (itch añade las cabeceras COOP/COEP). Sin esto, el
+     juego se queda en negro o no carga.
+4. **Kind of project:** HTML. Guarda y prueba con "View page" → el juego corre en
+   el navegador.
+
+## Solución de problemas (web)
+
+- **Pantalla negra / "SharedArrayBuffer is not defined":** falta marcar
+  "SharedArrayBuffer support" en itch (paso 5.3).
+- **No carga / 404:** el `index.html` no estaba en la raíz del zip, o renombraste
+  los archivos. Mantén todos los `index.*` juntos y con sus nombres.
+- **Audio que no suena hasta hacer clic:** los navegadores bloquean el audio
+  hasta la primera interacción del usuario; es normal, suena al pulsar PLAY.
+- **Va lento:** ya estás en Compatibility (lo correcto para web). Baja la
+  resolución del viewport en itch si hace falta.

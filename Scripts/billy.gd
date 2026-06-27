@@ -72,6 +72,7 @@ var input_direction: Vector2
 var last_direction: Vector2 = Vector2.DOWN
 var is_invulnerable: bool = false
 var is_frozen: bool = false   # Congelado mientras la tienda está abierta
+var movement_locked: bool = false   # Tutorial: no se mueve pero SÍ puede disparar
 
 var _hurt_blink: Tween = null   # parpadeo de invulnerabilidad tras recibir daño
 
@@ -300,7 +301,8 @@ func move_state(delta):
 		start_dodge()
 
 func _read_movement_input(delta: float) -> void:
-	input_direction = Input.get_vector("Izquierda", "Derecha", "Arriba", "Abajo")
+	# 'movement_locked' (tutorial): inmoviliza al jugador pero le deja DISPARAR.
+	input_direction = Vector2.ZERO if movement_locked else Input.get_vector("Izquierda", "Derecha", "Arriba", "Abajo")
 	var target := input_direction.normalized() * (speed * _frenzy_speed_mult)
 	if input_direction != Vector2.ZERO:
 		velocity = velocity.move_toward(target, acceleration * delta)

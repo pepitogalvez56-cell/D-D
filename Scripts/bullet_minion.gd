@@ -92,6 +92,20 @@ func _shoot_aimed() -> void:
 	if p.has_method("setup"):
 		p.setup(player, projectile_damage)
 
+func demo_ability() -> void:
+	"""Tutorial: dispara teledirigido (con aviso) varias veces y suelta un anillo,
+	sin moverse, para mostrar su patrón."""
+	if projectile_scene == null:
+		return
+	for i in 3:
+		_start_telegraph()
+		await get_tree().create_timer(telegraph_time).timeout
+		_stop_telegraph()
+		_shoot_aimed()
+		await get_tree().create_timer(0.6).timeout
+	fire_ring(ring_count)
+	await get_tree().create_timer(0.6).timeout
+
 func fire_ring(count: int) -> void:
 	"""Lanza 'count' proyectiles en círculo que NO siguen al jugador."""
 	if projectile_scene == null or count <= 0:

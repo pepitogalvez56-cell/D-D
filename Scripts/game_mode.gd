@@ -89,6 +89,12 @@ var _sound_box: Control = null
 var _credits_box: Control = null
 var _credits_label: RichTextLabel = null
 
+# Tutoriales interactivos (ventana de cartas + secuencias scripteadas)
+var tutorial_active: bool = false
+var _tutorial: Node = null         # TutorialController (Scripts/tutorial.gd)
+var _tutorial_box: Control = null  # ventana de selección de cartas
+var _congrats_box: Control = null  # ventana de "Felicidades"
+
 # Estado del texto contextual (info_label), para re-traducir al cambiar idioma
 var _info_key: String = ""
 var _info_args: Array = []
@@ -119,6 +125,12 @@ func _ready() -> void:
 	_build_screens()
 	_build_inventory()
 	_build_options()
+	_build_tutorial_box()
+	_build_congrats_box()
+	# Controlador de tutoriales (secuencias scripteadas), aislado en su propio nodo.
+	_tutorial = preload("res://Scripts/tutorial.gd").new()
+	_tutorial.gm = self
+	add_child(_tutorial)
 	_style_labels()
 	_update_wave_label()
 	timer_label.text = ""
@@ -147,6 +159,10 @@ func _find_player() -> Node2D:
 	return players[0] if players.size() > 0 else null
 
 func _process(delta: float) -> void:
+	# En modo tutorial el TutorialController controla las apariciones; el bucle de
+	# oleadas normal no corre.
+	if tutorial_active:
+		return
 	if _screen_active or get_tree().paused or not wave_active:
 		return
 
@@ -390,6 +406,9 @@ func _on_shop_continue() -> void:
 		player.set_frozen(false)
 	# Restaurar el HUD al salir de la tienda
 	_set_gameplay_ui_visible(true)
+	# En tutorial, el controlador decide qué pasa al cerrar la tienda (no oleadas).
+	if tutorial_active:
+		return
 	if _boss_pending:
 		# Al salir de la tienda tras la oleada final, aparece el jefe
 		_boss_pending = false
@@ -733,6 +752,11 @@ func _build_start_screen() -> Control:
 	play.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	vbox.add_child(play)
 
+	# Tutoriales interactivos (para jugadores nuevos).
+	var tut := _make_rect_button("Tutorials", Vector2(260, 64), 22, _open_tutorials)
+	tut.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	vbox.add_child(tut)
+
 	# Configuración accesible ANTES de empezar la partida (mismas ventanas que ESC).
 	var cfg := HBoxContainer.new()
 	cfg.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -847,6 +871,7 @@ func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()
 
 func _on_player_died() -> void:
+	tutorial_active = false   # corta cualquier secuencia de tutorial en curso
 	_stop_all_music()
 	_show_death()
 
@@ -1532,3 +1557,308 @@ func _stop_all_music() -> void:
 	_music_base.stop()
 	_music_boss1.stop()
 	_music_boss2.stop()
+
+# =============================================================================
+# TUTORIALES — ventana de cartas, hooks y "Felicidades"
+# =============================================================================
+const COIN_ICON_TEX := preload("res://Items assets/COIN_SPRITE.png")
+const _ENEMY_SHEETS := {
+	"minion": preload("res://Sprites_Minions/Minion.png"),
+	"big": preload("res://Sprites_Minions/BigMinion.png"),
+	"bullet": preload("res://Sprites_Minions/Sprite_BulletMinion_var1.png"),
+	"sad": preload("res://Sprites_Minions/Sprite_BulletMinion_var3.png"),
+	"gotica": preload("res://Sprites_Minions/Sprite_BulletMinion_var2.png"),
+	"support": preload("res://Sprites_Minions/SupportMinion.png"),
+	"charger": preload("res://Sprites_Minions/ChargerMinion.png"),
+}
+
+func _tutorial_cards() -> Array:
+	# nombre/desc en inglés (clave de traducción); coins = monedas al morir.
+	return [
+		{"id": "minion", "sheet": "minion", "name": "Green Slime", "desc": "Basic chaser. Practice moving, dodging and shooting.", "coins": 1},
+		{"id": "big", "sheet": "big", "name": "Dark Slime", "desc": "Tougher and hits harder than a minion.", "coins": 3},
+		{"id": "bullet", "sheet": "bullet", "name": "Sorcerer Slime", "desc": "Ranged attacker that keeps its distance.", "coins": 2},
+		{"id": "sad", "sheet": "sad", "name": "Archmage Slime", "desc": "Eats your SpinShots and fires them back.", "coins": 3},
+		{"id": "gotica", "sheet": "gotica", "name": "Punk Slime", "desc": "Teleports around and shoots.", "coins": 3},
+		{"id": "support", "sheet": "support", "name": "Support Slime", "desc": "Buffs and heals nearby allies.", "coins": 3},
+		{"id": "charger", "sheet": "charger", "name": "Orange Slime", "desc": "Winds up and charges, knocking things back.", "coins": 3},
+	]
+
+func _portrait(sheet_key: String) -> AtlasTexture:
+	var a := AtlasTexture.new()
+	a.atlas = _ENEMY_SHEETS[sheet_key]
+	a.region = Rect2(0, 0, 64, 64)
+	return a
+
+func _open_tutorials() -> void:
+	if _tutorial_box != null:
+		_tutorial_box.visible = true
+
+func _build_tutorial_box() -> void:
+	var overlay := Control.new()
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.visible = false
+	ui.add_child(overlay)
+	_tutorial_box = overlay
+
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0, 0, 0, 0.7)
+	overlay.add_child(dim)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+
+	var col := VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 14)
+	center.add_child(col)
+
+	var title := Label.new()
+	title.text = "TUTORIALS"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiTheme.apply_title(title, 40)
+	col.add_child(title)
+
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(grid)
+	for data in _tutorial_cards():
+		grid.add_child(_make_tutorial_card(data))
+
+	var back := _make_rect_button("Back", Vector2(200, 52), 16, func(): _tutorial_box.visible = false)
+	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(back)
+
+func _make_tutorial_card(data: Dictionary) -> Control:
+	var card := Panel.new()
+	card.custom_minimum_size = Vector2(168, 196)
+	UiTheme.apply_slot(card)
+
+	var vb := VBoxContainer.new()
+	vb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vb.offset_left = 8.0
+	vb.offset_top = 8.0
+	vb.offset_right = -8.0
+	vb.offset_bottom = -8.0
+	vb.alignment = BoxContainer.ALIGNMENT_BEGIN
+	vb.add_theme_constant_override("separation", 4)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(vb)
+
+	var portrait := TextureRect.new()
+	portrait.texture = _portrait(String(data["sheet"]))
+	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	portrait.custom_minimum_size = Vector2(0, 64)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(portrait)
+
+	var name_lbl := Label.new()
+	name_lbl.text = String(data["name"])
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_font_size_override("font_size", 15)
+	name_lbl.add_theme_color_override("font_color", Color(0.98, 0.86, 0.55))
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(name_lbl)
+
+	var desc_lbl := Label.new()
+	desc_lbl.text = String(data["desc"])
+	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc_lbl.add_theme_font_size_override("font_size", 11)
+	desc_lbl.add_theme_color_override("font_color", Color(0.95, 0.92, 0.85))
+	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc_lbl.custom_minimum_size = Vector2(0, 54)
+	desc_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(desc_lbl)
+
+	var coins_row := HBoxContainer.new()
+	coins_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	coins_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(coins_row)
+	var coin_icon := TextureRect.new()
+	coin_icon.texture = COIN_ICON_TEX
+	coin_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	coin_icon.custom_minimum_size = Vector2(20, 20)
+	coin_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	coin_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	coin_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	coins_row.add_child(coin_icon)
+	var coin_lbl := Label.new()
+	coin_lbl.text = "x%d" % int(data["coins"])
+	coin_lbl.add_theme_color_override("font_color", UiTheme.GOLD)
+	coin_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	coins_row.add_child(coin_lbl)
+
+	# Botón transparente que cubre la carta.
+	var btn := Button.new()
+	btn.set_anchors_preset(Control.PRESET_FULL_RECT)
+	btn.focus_mode = Control.FOCUS_NONE
+	for s in ["normal", "hover", "pressed", "disabled", "focus"]:
+		btn.add_theme_stylebox_override(s, StyleBoxEmpty.new())
+	btn.mouse_entered.connect(func(): card.modulate = Color(1.15, 1.15, 1.15))
+	btn.mouse_exited.connect(func(): card.modulate = Color.WHITE)
+	var id := String(data["id"])
+	btn.pressed.connect(func(): _start_tutorial(id))
+	card.add_child(btn)
+	return card
+
+func _start_tutorial(id: String) -> void:
+	Audio.play("ui_click")
+	if _tutorial_box != null:
+		_tutorial_box.visible = false
+	if _congrats_box != null:
+		_congrats_box.visible = false
+	_hide_screens()                 # quita la pantalla de inicio y despausa
+	_set_gameplay_ui_visible(true)
+	Game.reset()
+	wave_number = 0
+	_update_wave_label()
+	tutorial_active = true
+	if player == null or not is_instance_valid(player):
+		player = _find_player()
+	_play_music(_music_base)
+	_tutorial.run(id)
+
+# --- Hooks usados por el TutorialController ---
+func tut_announce(text: String) -> void:
+	_show_announce(tr(text))
+
+func tut_clear_announce() -> void:
+	_hide_announce()
+
+func tut_freeze(v: bool) -> void:
+	if player != null and is_instance_valid(player) and player.has_method("set_frozen"):
+		player.set_frozen(v)
+
+func tut_lock_movement(v: bool) -> void:
+	if player != null and is_instance_valid(player) and "movement_locked" in player:
+		player.movement_locked = v
+
+func tut_give_coins(n: int) -> void:
+	Game.add_coins(n)
+
+func tut_open_shop() -> void:
+	_enter_shop()
+
+func tut_player() -> Node2D:
+	if player == null or not is_instance_valid(player):
+		player = _find_player()
+	return player
+
+func tut_host() -> Node:
+	return _spawn_host()
+
+func tut_spawn(scene: PackedScene, pos: Vector2) -> Node:
+	if scene == null:
+		return null
+	var e = scene.instantiate()
+	_spawn_host().add_child(e)
+	e.global_position = pos
+	return e
+
+func tut_point(angle: float, radius: float) -> Vector2:
+	var origin: Vector2 = tut_player().global_position if tut_player() != null else Vector2(960, 576)
+	var p := origin + Vector2(cos(angle), sin(angle)) * radius
+	p.x = clampf(p.x, 90.0, 1830.0)
+	p.y = clampf(p.y, 90.0, 1060.0)
+	return p
+
+func tut_grass_point() -> Vector2:
+	if _ground == null or not is_instance_valid(_ground):
+		_ground = _find_ground()
+	if player == null or not is_instance_valid(player):
+		player = _find_player()
+	if player == null:
+		return Vector2(960, 576)
+	return _pick_grass_point_near_player()
+
+func tut_enemies_alive() -> int:
+	var n := 0
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if is_instance_valid(e) and not e.is_in_group("ally"):
+			n += 1
+	return n
+
+func tut_clear_enemies() -> void:
+	_clear_enemies()
+	_clear_bullets()
+	for b in get_tree().get_nodes_in_group("enemy_projectile"):
+		if is_instance_valid(b):
+			b.queue_free()
+
+# --- Ventana de Felicidades ---
+func show_congrats() -> void:
+	tutorial_active = false
+	tut_clear_announce()
+	tut_clear_enemies()
+	if player != null and is_instance_valid(player):
+		if player.has_method("set_frozen"):
+			player.set_frozen(true)
+		if "movement_locked" in player:
+			player.movement_locked = false
+	if _congrats_box != null:
+		_congrats_box.visible = true
+
+func _build_congrats_box() -> void:
+	var overlay := Control.new()
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.visible = false
+	ui.add_child(overlay)
+	_congrats_box = overlay
+
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0, 0, 0, 0.7)
+	overlay.add_child(dim)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+
+	var col := VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 16)
+	center.add_child(col)
+
+	var title := Label.new()
+	title.text = "Congratulations!"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiTheme.apply_title(title, 44)
+	col.add_child(title)
+
+	var b1 := _make_rect_button("More tutorials", Vector2(280, 60), 20, func():
+		_congrats_box.visible = false
+		_open_tutorials())
+	b1.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(b1)
+
+	var b2 := _make_rect_button("Normal game", Vector2(280, 60), 20, _on_congrats_normal)
+	b2.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(b2)
+
+	var b3 := _make_rect_button("Exit", Vector2(280, 60), 20, _on_opt_exit)
+	b3.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(b3)
+
+func _on_congrats_normal() -> void:
+	if _congrats_box != null:
+		_congrats_box.visible = false
+	tutorial_active = false
+	tut_clear_enemies()
+	if player != null and is_instance_valid(player):
+		if player.has_method("set_frozen"):
+			player.set_frozen(false)
+		if "movement_locked" in player:
+			player.movement_locked = false
+	Game.reset()
+	wave_number = 0
+	_update_wave_label()
+	_play_music(_music_base)
+	_start_wave()

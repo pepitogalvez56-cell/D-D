@@ -66,6 +66,23 @@ func _update_ai(delta: float) -> void:
 				_phase = ChargePhase.CHASE
 				_cooldown = charge_interval
 
+var demo_charge_dir: Vector2 = Vector2.RIGHT   # dirección de la embestida en el tutorial
+
+func demo_ability() -> void:
+	"""Tutorial: telegrafía y embiste en 'demo_charge_dir', empujando a los pinos.
+	Usa _demo_velocity para moverse aun con la IA congelada (ai_frozen)."""
+	sprite.modulate = Color(1.0, 0.7, 0.2)   # telegrafía
+	await get_tree().create_timer(windup_time).timeout
+	sprite.modulate = Color.WHITE
+	var dir := demo_charge_dir.normalized() if demo_charge_dir.length() > 0.0 else Vector2.RIGHT
+	var t := 0.0
+	while t < charge_time + 0.35:
+		_demo_velocity = dir * charge_speed
+		_shove_others()
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	_demo_velocity = Vector2.ZERO
+
 func _shove_others() -> void:
 	"""Durante la embestida, empuja ligeramente a otros enemigos en su trayectoria."""
 	var pushed := false

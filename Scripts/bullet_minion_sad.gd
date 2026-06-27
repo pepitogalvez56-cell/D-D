@@ -85,6 +85,17 @@ func _spawn_smoke() -> void:
 	fx.z_index = 30
 	fx.play_effect("dust")
 
+func demo_ability() -> void:
+	"""Tutorial: durante unos segundos se come las SpinShots del jugador que
+	entren en su escudo y luego suelta su anillo especial, sin moverse."""
+	var frames := 0
+	while frames < 240:   # ~4 s comiendo SpinShots
+		_update_shield()
+		await get_tree().process_frame
+		frames += 1
+	_release_ring(maxi(rage_threshold, 8))
+	await get_tree().create_timer(0.6).timeout
+
 func _release_ring(count: int) -> void:
 	if projectile_scene == null or count <= 0:
 		return

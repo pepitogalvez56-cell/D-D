@@ -132,6 +132,41 @@ const ES := {
 	"+10 max health, +5 damage; frenzy (speed + damage) when below 50% health.": "+10 vida máx., +5 daño; frenesí (velocidad + daño) por debajo del 50% de vida.",
 	"Grand Captain Helmet": "Casco de gran capitán",
 	"+15 max health, +10 damage; summons 4 allied Capitanes.": "+15 vida máx., +10 daño; invoca 4 Capitanes aliados.",
+	# --- Tutoriales (menú, ventana de cartas y felicidades) ---
+	"Tutorials": "Tutoriales",
+	"TUTORIALS": "TUTORIALES",
+	"Congratulations!": "¡Felicidades!",
+	"More tutorials": "Más tutoriales",
+	"Normal game": "Juego normal",
+	# Nombres de carta
+	"Green Slime": "Slime Verde",
+	"Dark Slime": "Slime Oscuro",
+	"Sorcerer Slime": "Slime Hechicero",
+	"Archmage Slime": "Slime Arcomago",
+	"Punk Slime": "Slime Punk",
+	"Support Slime": "Slime de Soporte",
+	"Orange Slime": "Slime Naranja",
+	# Descripciones de carta
+	"Basic chaser. Practice moving, dodging and shooting.": "Perseguidor básico. Practica moverte, esquivar y disparar.",
+	"Tougher and hits harder than a minion.": "Más resistente y pega más fuerte que un minion.",
+	"Ranged attacker that keeps its distance.": "Atacante a distancia que mantiene la distancia.",
+	"Eats your SpinShots and fires them back.": "Se come tus SpinShots y las devuelve.",
+	"Teleports around and shoots.": "Se teletransporta y dispara.",
+	"Buffs and heals nearby allies.": "Potencia y cura a los aliados cercanos.",
+	"Winds up and charges, knocking things back.": "Toma impulso y embiste, empujando lo que toca.",
+	# Mensajes durante los tutoriales
+	"Move with WASD. Press SPACE to dodge!": "Muévete con WASD. ¡Pulsa ESPACIO para esquivar!",
+	"Left click and right click to attack!": "¡Clic izquierdo y clic derecho para atacar!",
+	"Watch out: these ones are tougher and hit harder!": "¡Cuidado: estos son más resistentes y pegan más fuerte!",
+	"Here comes a bigger group!": "¡Ahí viene un grupo más grande!",
+	"This one attacks from afar and keeps its distance. It's shy.": "Este ataca a distancia y prefiere mantenerse lejos, es tímido.",
+	"Shoot it! It will eat your SpinShots and fire them back.": "¡Dispárale! Se comerá tus SpinShots y las devolverá.",
+	"Watch how it teleports around the arena!": "¡Mira cómo se teletransporta por el mapa!",
+	"Now fight it for real!": "¡Ahora pelea contra él de verdad!",
+	"The Support buffs and heals its allies.": "El Soporte potencia y cura a sus aliados.",
+	"See the warm glow? Those minions are getting stronger.": "¿Ves el brillo cálido? Esos minions se están fortaleciendo.",
+	"Take it down before it powers up the others!": "¡Acaba con él antes de que potencie a los demás!",
+	"The Charger winds up, then dashes and knocks things back!": "¡El Cargador toma impulso y embiste, empujando todo!",
 }
 
 func _ready() -> void:

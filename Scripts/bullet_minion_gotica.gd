@@ -74,6 +74,22 @@ func _teleport_and_attack() -> void:
 	_fire_pattern(ring_count, 0.0)
 	_fire_pattern(3, deg_to_rad(30.0))
 
+func demo_ability() -> void:
+	"""Tutorial: solo muestra el teletransporte (humo + reaparición), sin disparar."""
+	for i in 3:
+		_spawn_smoke(global_position)
+		Audio.play_at("teleport_enemy", global_position, 0.05, 80, 5.0)
+		var origin: Vector2 = player.global_position if player != null else global_position
+		var pos: Vector2 = origin + Vector2.RIGHT.rotated(randf() * TAU) * safe_distance
+		pos.x = clampf(pos.x, ARENA_MIN.x, ARENA_MAX.x)
+		pos.y = clampf(pos.y, ARENA_MIN.y, ARENA_MAX.y)
+		global_position = pos
+		_spawn_smoke(global_position)
+		sprite.modulate = Color(0.7, 0.4, 1.0)
+		var tw := create_tween()
+		tw.tween_property(sprite, "modulate", _base_modulate(), 0.25)
+		await get_tree().create_timer(1.0).timeout
+
 func _spawn_smoke(pos: Vector2) -> void:
 	"""Nube de humo (25.png) escalada para cubrir el cuerpo del enemigo."""
 	var host := get_parent()

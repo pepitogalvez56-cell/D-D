@@ -111,6 +111,14 @@ func _best_cluster() -> Vector2:
 			best_center = sum / float(n)
 	return best_center
 
+func demo_ability() -> void:
+	"""Tutorial: potencia/cura a los maniquíes cercanos varias veces para mostrar
+	su aura, sin moverse."""
+	for i in 4:
+		_apply_damage_aura()
+		_heal_allies()
+		await get_tree().create_timer(0.6).timeout
+
 func _apply_damage_aura() -> void:
 	if damage_buff <= 0:
 		return
