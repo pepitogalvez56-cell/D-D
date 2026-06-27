@@ -49,6 +49,10 @@ var _attack_timer: float = 0.0
 var _dead: bool = false
 var _lethal: bool = false      # bajo efecto de "giro letal"
 var passive: bool = false      # enemigo de prueba (DEV-ROOM): no ataca
+# Tutoriales: 'ai_frozen' detiene la IA normal (el enemigo se queda quieto para
+# mostrar una demo); '_demo_velocity' permite que una demo lo mueva (Cargador).
+var ai_frozen: bool = false
+var _demo_velocity: Vector2 = Vector2.ZERO
 
 # Aura de daño del enemigo de Apoyo: bonificación temporal que se refresca
 # mientras el enemigo está dentro del radio y caduca al salir.
@@ -124,6 +128,18 @@ func _physics_process(delta: float) -> void:
 	if _lethal:
 		sprite.rotation += LETHAL_SPIN_SPEED * delta
 		velocity = Vector2.ZERO
+		return
+
+	# Modo tutorial: la IA normal está congelada (no persigue/ataca). Solo se mueve
+	# si una demo lo pide vía _demo_velocity (Cargador) o por un empuje externo
+	# (los "pinos de boliche" que aparta el Cargador siguen saliendo despedidos).
+	if ai_frozen:
+		velocity = _demo_velocity
+		if _push_vel.length() > 1.0:
+			velocity += _push_vel
+			_push_vel = _push_vel.move_toward(Vector2.ZERO, 1600.0 * delta)
+		move_and_slide()
+		_update_animation(delta)
 		return
 
 	_attack_timer = maxf(0.0, _attack_timer - delta)
@@ -214,6 +230,11 @@ func make_passive() -> void:
 	"""Convierte al enemigo en maniquí de pruebas: no hace daño."""
 	passive = true
 	melee_enabled = false
+
+func demo_ability() -> void:
+	"""Ejecuta UNA vez la mecánica característica del enemigo para los tutoriales.
+	Por defecto no hace nada; las subclases especiales la implementan."""
+	pass
 
 func _try_melee() -> void:
 	if passive or player == null or _attack_timer > 0.0:
